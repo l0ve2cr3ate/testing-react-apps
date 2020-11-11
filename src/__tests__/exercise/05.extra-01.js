@@ -1,13 +1,27 @@
 // mocking HTTP requests
 // http://localhost:3000/login-submission
+// Exercise 5 Extra Credit 1
 
 import * as React from 'react'
 import {render, screen, waitForElementToBeRemoved} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {build, fake} from '@jackfranklin/test-data-bot'
-import {rest} from 'msw'
 import {setupServer} from 'msw/node'
+import {handlers} from 'test/server-handlers'
 import Login from '../../components/login-submission'
+
+// ## Extra Credit
+
+// ### 1. 💯 reuse server request handlers
+
+// In my applications, I love having a mock server to use during development. It's
+// often more reliable, works offline, doesn't require a lot of environment setup,
+// and allows me to start writing UI for APIs that aren't finished yet.
+
+// MSW was actually originally built for this use case and we've already
+// implemented this server handler for our app in `test/server-handlers.js`, so for
+// this extra credit, import that array of server handlers and send it along into
+// the `setupServer` call.
 
 const buildLoginForm = build({
   fields: {
@@ -16,25 +30,10 @@ const buildLoginForm = build({
   },
 })
 
-
-const server = setupServer(
-  rest.post(
-    'https://auth-provider.example.com/api/login',
-    async (req, res, ctx) => {
-      if (!req.body.password) {
-        return res(ctx.status(400), ctx.json({message: 'password required'}))
-      }
-      if (!req.body.username) {
-        return res(ctx.status(400), ctx.json({message: 'username required'}))
-      }
-      return res(ctx.json({username: req.body.username}))
-    },
-  ),
-)
+const server = setupServer(...handlers)
 
 beforeAll(() => server.listen())
 afterAll(() => server.close())
-
 
 test(`logging in displays the user's username`, async () => {
   render(<Login />)
@@ -46,9 +45,6 @@ test(`logging in displays the user's username`, async () => {
 
   const spinner = screen.getByLabelText(/loading/i)
   await waitForElementToBeRemoved(spinner)
-  
-  expect(screen.getByText(username)).toBeInTheDocument() 
+
+  expect(screen.getByText(username)).toBeInTheDocument()
 })
-
-
-
